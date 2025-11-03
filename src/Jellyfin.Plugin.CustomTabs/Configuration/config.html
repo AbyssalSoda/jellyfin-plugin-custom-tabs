@@ -83,95 +83,84 @@
       </fieldset>
     </template>
     <script type="text/javascript">
-        if (typeof CustomTabsConfig == 'undefined') {
-            
-            const CustomTabsConfig = {
-                pluginId: "fbacd0b6-fd46-4a05-b0a4-2045d6a135b0",
-                configurationWrapper: document.querySelector("#configurationWrapper"),
-
-                templateCustomTab: document.querySelector("#templateCustomTab"),
-                
-                btnSave: document.querySelector("#saveConfig"),
-                btnAddCustomTab: document.querySelector("#btnAddCustomTab"),
-
-                saveConfig: function (e) {
-                    e.preventDefault();
-                    Dashboard.showLoadingMsg();
-                    const config = {
-                        Tabs: []
-                    };
-                    
-                    // loop over tab configs
-                    document.querySelectorAll("[data-id=tab-config]").forEach(tabConfig => {
-                        const tab = {
-                            Title: tabConfig.querySelector("[data-id=txtDisplayText]").value,
-                            ContentHtml: tabConfig.querySelector("[data-id=templateHtmlContent]").value,
-                        };
-                        
-                        config.Tabs.push(tab);
-                    });
-
-                    window.ApiClient.updatePluginConfiguration(CustomTabsConfig.pluginId, config)
-                        .then(Dashboard.processPluginConfigurationUpdateResult)
-                        .catch(function (error) {
-                            console.error(error);
-                        })
-                        .finally(function () {
-                            Dashboard.hideLoadingMsg();
-                        });
-                },
-                loadConfig: function () {
-                    Dashboard.showLoadingMsg();
-                    window.ApiClient.getPluginConfiguration(CustomTabsConfig.pluginId)
-                        .then(function (config) {
-                            for (var i = 0; i < config.Tabs.length; ++i) {
-                                CustomTabsConfig.addCustomTabConfig(config.Tabs[i]);
-                            }
-                        })
-                        .catch(function (error) {
-                            console.error(error);
-                        })
-                        .finally(function () {
-                            Dashboard.hideLoadingMsg();
-                        });
-                },
-                init: function () {
-                    CustomTabsConfig.btnAddCustomTab.addEventListener("click", CustomTabsConfig.addCustomTabNew);
-                    CustomTabsConfig.btnSave.addEventListener("click", CustomTabsConfig.saveConfig);
-                    CustomTabsConfig.configurationWrapper.addEventListener("click", (event) => {
-                        if (event.target.getAttribute('data-id') === "templateRemoveTab") {
-                            const el = event.target.closest("[data-id=tab-config]");
-                            CustomTabsConfig.removeTab(el);
-                        }
-                    });
-                    CustomTabsConfig.loadConfig();
-                },
-                addCustomTabNew: function() {
-                    const template = CustomTabsConfig.templateCustomTab.cloneNode(true).content;
-
-                    template.querySelector('[data-id=txtDisplayText]').value = 'New Tab';
-                    template.querySelector('[data-id=templateHtmlContent]').value = '';
-
-                    const el = CustomTabsConfig.configurationWrapper.appendChild(template);
-                },
-                addCustomTabConfig: function(tabConfig) {
-                    const template = CustomTabsConfig.templateCustomTab.cloneNode(true).content;
-                    //template.querySelector('[data-id=hiddenSectionId]').value = tabConfig.SectionId;
-                    template.querySelector('[data-id=txtDisplayText]').value = tabConfig.Title;
-                    template.querySelector('[data-id=templateHtmlContent]').value = tabConfig.ContentHtml;
-
-                    const el = CustomTabsConfig.configurationWrapper.appendChild(template);
-                },
-                removeTab: function(elem) {
-                    elem.remove();
-                }
+    if (typeof CustomTabsConfig == 'undefined') {
+      const CustomTabsConfig = {
+        pluginId: "fbacd0b6-fd46-4a05-b0a4-2045d6a135b0",
+        configurationWrapper: document.querySelector("#configurationWrapper"),
+        templateCustomTab: document.querySelector("#templateCustomTab"),
+        btnSave: document.querySelector("#saveConfig"),
+        btnAddCustomTab: document.querySelector("#btnAddCustomTab"),
+    
+        saveConfig: function (e) {
+          e.preventDefault();
+          Dashboard.showLoadingMsg();
+    
+          const config = { Tabs: [] };
+          document.querySelectorAll("[data-id=tab-config]").forEach(tabConfig => {
+            const tab = {
+              Title: tabConfig.querySelector("[data-id=txtDisplayText]").value.trim(),
+              ContentHtml: tabConfig.querySelector("[data-id=templateHtmlContent]").value,
+              RedirectUrl: (tabConfig.querySelector("[data-id=templateRedirectUrl]").value || "").trim() || null,
+              IsExternal: tabConfig.querySelector("[data-id=templateIsExternal]").checked,
+              Target: (tabConfig.querySelector("[data-id=templateTarget]").value || null)
+            };
+            config.Tabs.push(tab);
+          });
+    
+          window.ApiClient.updatePluginConfiguration(CustomTabsConfig.pluginId, config)
+            .then(Dashboard.processPluginConfigurationUpdateResult)
+            .catch(console.error)
+            .finally(() => Dashboard.hideLoadingMsg());
+        },
+    
+        loadConfig: function () {
+          Dashboard.showLoadingMsg();
+          window.ApiClient.getPluginConfiguration(CustomTabsConfig.pluginId)
+            .then(function (config) {
+              (config.Tabs || []).forEach(CustomTabsConfig.addCustomTabConfig);
+            })
+            .catch(console.error)
+            .finally(() => Dashboard.hideLoadingMsg());
+        },
+    
+        init: function () {
+          CustomTabsConfig.btnAddCustomTab.addEventListener("click", CustomTabsConfig.addCustomTabNew);
+          CustomTabsConfig.btnSave.addEventListener("click", CustomTabsConfig.saveConfig);
+          CustomTabsConfig.configurationWrapper.addEventListener("click", (event) => {
+            if (event.target.getAttribute('data-id') === "templateRemoveTab") {
+              const el = event.target.closest("[data-id=tab-config]");
+              CustomTabsConfig.removeTab(el);
             }
-
-            // view.addEventListener("viewshow", function (e) {
-            document.querySelector('#customTabsConfigurationPage').addEventListener("pageshow", function () {
-                CustomTabsConfig.init();
-            });
-        }
+          });
+          CustomTabsConfig.loadConfig();
+        },
+    
+        addCustomTabNew: function () {
+          const template = CustomTabsConfig.templateCustomTab.cloneNode(true).content;
+          template.querySelector('[data-id=txtDisplayText]').value = 'New Tab';
+          template.querySelector('[data-id=templateRedirectUrl]').value = '';
+          template.querySelector('[data-id=templateIsExternal]').checked = false;
+          template.querySelector('[data-id=templateTarget]').value = '';
+          template.querySelector('[data-id=templateHtmlContent]').value = '';
+          CustomTabsConfig.configurationWrapper.appendChild(template);
+        },
+    
+        addCustomTabConfig: function (tabConfig) {
+          const template = CustomTabsConfig.templateCustomTab.cloneNode(true).content;
+          template.querySelector('[data-id=txtDisplayText]').value = tabConfig.Title || '';
+          template.querySelector('[data-id=templateRedirectUrl]').value = tabConfig.RedirectUrl || '';
+          template.querySelector('[data-id=templateIsExternal]').checked = !!tabConfig.IsExternal;
+          template.querySelector('[data-id=templateTarget]').value = tabConfig.Target || '';
+          template.querySelector('[data-id=templateHtmlContent]').value = tabConfig.ContentHtml || '';
+          CustomTabsConfig.configurationWrapper.appendChild(template);
+        },
+    
+        removeTab: function (elem) { elem.remove(); }
+      };
+    
+      document.querySelector('#customTabsConfigurationPage')
+        .addEventListener("pageshow", () => CustomTabsConfig.init());
+    }
     </script>
 </div>
 </body>
