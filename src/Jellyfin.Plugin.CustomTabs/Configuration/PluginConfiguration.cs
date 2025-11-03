@@ -1,4 +1,5 @@
-﻿using MediaBrowser.Model.Plugins;
+using System;
+using MediaBrowser.Model.Plugins;
 
 namespace Jellyfin.Plugin.CustomTabs.Configuration
 {
@@ -10,7 +11,12 @@ namespace Jellyfin.Plugin.CustomTabs.Configuration
     public class TabConfig
     {
         public string ContentHtml { get; set; } = string.Empty;
-
         public string Title { get; set; } = string.Empty;
+
+        public string? RedirectUrl { get; set; } = null;
+
+        public bool IsExternal { get; set; } = false;
+
+        public string? Target { get; set; } = null;
     }
 }
